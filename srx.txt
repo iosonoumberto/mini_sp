@@ -1,0 +1,272 @@
+<configuration-text>
+## Last changed: 2021-09-27 06:18:26 PDT
+version 20200319.130545_builder.r1095278;
+groups {
+    member0 {
+        system {
+            host-name srx;
+            backup-router 10.102.175.254;
+        }
+        interfaces {
+            fxp0 {
+                unit 0 {
+                    family inet {
+                        address 10.102.165.207/20;
+                    }
+                }
+            }
+        }
+    }
+    global {
+        system {
+            root-authentication {
+                encrypted-password "$1$ZUlES4dp$OUwWo1g7cLoV/aMWpHUnC/";
+            }
+            login {
+                class wheel {
+                    permissions snmp;
+                }
+                user regress {
+                    uid 928;
+                    class superuser;
+                    shell csh;
+                    authentication {
+                        encrypted-password "$1$kPU..$w.4FGRAGanJ8U4Yq6sbj7.";
+                    }
+                }
+                user remote {
+                    uid 2000;
+                    class super-user;
+                }
+            }
+            services {
+                finger;
+                ftp;
+                rlogin;
+                ssh {
+                    root-login allow;
+                }
+                telnet;
+                xnm-clear-text;
+                netconf {
+                    ssh;
+                }
+            }
+            domain-name englab.juniper.net;
+            domain-search [ englab.juniper.net juniper.net jnpr.net spglab.juniper.net ];
+            time-zone America/Los_Angeles;
+            debugger-on-break;
+            dump-on-panic;
+            authentication-order [ password radius ];
+            name-server {
+                10.102.149.51;
+                10.102.149.52;
+            }
+            radius-server {
+                192.168.69.162 secret "$9$iHfz9Cu0BRQznCApIRSreWxNVw2GjkKM4JGimP";
+                192.168.64.10 secret "$9$TQ/t1IcSrKAt0IRheK8X7VYgaZDm5zNdiqmTn6";
+                192.168.4.240 secret "$9$GqUqf3nCApOPfQn690ORhSeWL7-boZDylsgoGHk";
+            }
+            syslog {
+                host log {
+                    kernel info;
+                    any notice;
+                    pfe info;
+                    interactive-commands any;
+                }
+                file messages {
+                    kernel info;
+                    any notice;
+                    authorization info;
+                    pfe info;
+                    archive world-readable;
+                }
+                file security {
+                    interactive-commands any;
+                    archive world-readable;
+                }
+            }
+            processes {
+                routing enable;
+                ntp enable;
+                management enable;
+                watchdog enable;
+                snmp enable;
+                inet-process enable;
+                mib-process enable;
+            }
+            ntp {
+                boot-server 172.21.200.60;
+                server 172.21.200.60;
+                server 172.29.131.60;
+                server 172.29.135.60;
+            }
+        }
+        chassis {
+            dump-on-panic;
+        }
+        interfaces {
+            lo0 {
+                unit 0 {
+                    family inet {
+                        address 128.102.165.207/32 {
+                            primary;
+                        }
+                    }
+                    family iso {
+                        address 47.0005.80ff.f800.0000.0108.0001.1281.0216.5207.00;
+                    }
+                    family inet6 {
+                        address abcd::128:102:165:207/128 {
+                            primary;
+                        }
+                    }
+                }
+            }
+        }
+        snmp {
+            location "Systest lab";
+            contact "Jay Lloyd";
+            interface fxp0.0;
+            community public {
+                authorization read-only;
+            }
+            community private {
+                authorization read-write;
+            }
+        }
+        routing-options {
+            static {
+                /* corperate and alpha net */
+                route 172.16.0.0/12 {
+                    next-hop 10.102.175.254;
+                    retain;
+                    no-readvertise;
+                }
+                /* eng lab nets */
+                route 192.168.0.0/16 {
+                    next-hop 10.102.175.254;
+                    retain;
+                    no-readvertise;
+                }
+                route 10.0.0.0/8 {
+                    next-hop 10.102.175.254;
+                    retain;
+                    no-readvertise;
+                }
+                /* ntp server */
+                route 66.129.255.62/32 {
+                    next-hop 10.102.175.254;
+                    retain;
+                    no-readvertise;
+                }
+            }
+            router-id 128.102.165.207;
+        }
+    }
+}
+apply-groups [ global member0 ];
+system {
+    services {
+        netconf {
+            ssh;
+        }
+    }
+    ports {
+        console log-out-on-disconnect;
+    }
+}
+security {
+    policies {
+        default-policy {
+            permit-all;
+        }
+    }
+    zones {
+        security-zone l2vpn-internet {
+            host-inbound-traffic {
+                system-services {
+                    all;
+                }
+                protocols {
+                    all;
+                }
+            }
+            interfaces {
+                ge-0/0/0.200;
+            }
+        }
+        security-zone web {
+            host-inbound-traffic {
+                system-services {
+                    all;
+                }
+                protocols {
+                    all;
+                }
+            }
+            interfaces {
+                ge-0/0/1.0;
+            }
+        }
+    }
+}
+interfaces {
+    ge-0/0/0 {
+        vlan-tagging;
+        unit 200 {
+            vlan-id 200;
+            family inet {
+                address 192.168.200.2/30;
+            }
+        }
+    }
+    ge-0/0/1 {
+        unit 0 {
+            family inet {
+                address 192.168.1.1/30;
+            }
+        }
+    }
+}
+policy-options {
+    policy-statement exp-def {
+        term def {
+            from {
+                route-filter 0.0.0.0/0 exact;
+            }
+            then accept;
+        }
+        then reject;
+    }
+}
+routing-instances {
+    l2vpn-internet {
+        routing-options {
+            static {
+                route 0.0.0.0/0 next-hop 192.168.1.2;
+            }
+        }
+        protocols {
+            bgp {
+                group ce1 {
+                    type external;
+                    export exp-def;
+                    peer-as 65001;
+                    bfd-liveness-detection {
+                        minimum-interval 1000;
+                        multiplier 3;
+                    }
+                    neighbor 192.168.200.1;
+                }
+            }
+        }
+        interface ge-0/0/0.200;
+        interface ge-0/0/1.0;
+        instance-type virtual-router;
+    }
+}
+routing-options {
+    autonomous-system 65000;
+}
+</configuration-text>
