@@ -1,0 +1,274 @@
+<configuration-text>
+## Last changed: 2022-02-21 03:44:24 PST
+version 18.4R1.8;
+groups {
+    member0 {
+        system {
+            host-name ce3;
+            backup-router 10.102.175.254;
+        }
+        interfaces {
+            fxp0 {
+                unit 0 {
+                    family inet {
+                        address 10.102.165.209/20;
+                    }
+                }
+            }
+        }
+    }
+    global {
+        system {
+            login {
+                class wheel {
+                    permissions snmp;
+                }
+                user regress {
+                    uid 928;
+                    class superuser;
+                    shell csh;
+                    authentication {
+                        encrypted-password "$1$kPU..$w.4FGRAGanJ8U4Yq6sbj7.";
+                    }
+                }
+                user remote {
+                    uid 2000;
+                    class super-user;
+                }
+            }
+            root-authentication {
+                encrypted-password "$1$ZUlES4dp$OUwWo1g7cLoV/aMWpHUnC/";
+            }
+            services {
+                finger;
+                ftp;
+                rlogin;
+                ssh {
+                    root-login allow;
+                }
+                telnet;
+                xnm-clear-text;
+                netconf {
+                    ssh;
+                }
+            }
+            domain-name englab.juniper.net;
+            domain-search [ englab.juniper.net juniper.net jnpr.net spglab.juniper.net ];
+            time-zone America/Los_Angeles;
+            debugger-on-break;
+            dump-on-panic;
+            authentication-order [ password radius ];
+            name-server {
+                10.102.149.51;
+                10.102.149.52;
+            }
+            radius-server {
+                192.168.69.162 secret "$9$iHfz9Cu0BRQznCApIRSreWxNVw2GjkKM4JGimP";
+                192.168.64.10 secret "$9$TQ/t1IcSrKAt0IRheK8X7VYgaZDm5zNdiqmTn6";
+                192.168.4.240 secret "$9$GqUqf3nCApOPfQn690ORhSeWL7-boZDylsgoGHk";
+            }
+            syslog {
+                host log {
+                    kernel info;
+                    any notice;
+                    pfe info;
+                    interactive-commands any;
+                }
+                file messages {
+                    kernel info;
+                    any notice;
+                    authorization info;
+                    pfe info;
+                    archive world-readable;
+                }
+                file security {
+                    interactive-commands any;
+                    archive world-readable;
+                }
+            }
+            processes {
+                routing enable;
+                ntp enable;
+                management enable;
+                watchdog enable;
+                snmp enable;
+                inet-process enable;
+                mib-process enable;
+            }
+            ntp {
+                boot-server 172.21.200.60;
+                server 172.21.200.60;
+                server 172.29.131.60;
+                server 172.29.135.60;
+            }
+        }
+        chassis {
+            dump-on-panic;
+        }
+        interfaces {
+            lo0 {
+                unit 0 {
+                    family inet {
+                        address 128.102.165.209/32 {
+                            primary;
+                        }
+                    }
+                    family iso {
+                        address 47.0005.80ff.f800.0000.0108.0001.1281.0216.5209.00;
+                    }
+                    family inet6 {
+                        address abcd::128:102:165:209/128 {
+                            primary;
+                        }
+                    }
+                }
+            }
+        }
+        snmp {
+            location "Systest lab";
+            contact "Jay Lloyd";
+            interface fxp0.0;
+            community public {
+                authorization read-only;
+            }
+            community private {
+                authorization read-write;
+            }
+        }
+        routing-options {
+            static {
+                /* corperate and alpha net */
+                route 172.16.0.0/12 {
+                    next-hop 10.102.175.254;
+                    retain;
+                    no-readvertise;
+                }
+                /* eng lab nets */
+                route 192.168.0.0/16 {
+                    next-hop 10.102.175.254;
+                    retain;
+                    no-readvertise;
+                }
+                route 10.0.0.0/8 {
+                    next-hop 10.102.175.254;
+                    retain;
+                    no-readvertise;
+                }
+                /* ntp server */
+                route 66.129.255.62/32 {
+                    next-hop 10.102.175.254;
+                    retain;
+                    no-readvertise;
+                }
+            }
+            router-id 128.102.165.209;
+        }
+    }
+}
+apply-groups global;
+system {
+    host-name ce3;
+    ports {
+        console log-out-on-disconnect;
+    }
+}
+chassis {
+    fpc 0 {
+        pic 0 {
+            tunnel-services {
+                bandwidth 1g;
+            }
+        }
+    }
+}
+interfaces {
+    ge-0/0/0 {
+        flexible-vlan-tagging;
+        encapsulation flexible-ethernet-services;
+        unit 100 {
+            vlan-id 100;
+            family inet {
+                address 192.168.100.0/31;
+            }
+        }
+    }
+    gr-0/0/10 {
+        unit 0 {
+            tunnel {
+                source 100.100.100.100;
+                destination 50.50.50.50;
+                routing-instance {
+                    destination l3vpn-gre;
+                }
+            }
+            family inet {
+                address 100.64.1.0/31;
+            }
+        }
+    }
+    fxp0 {
+        unit 0 {
+            family inet {
+                address 10.93.24.244/20;
+            }
+        }
+    }
+    lo0 {
+        unit 100 {
+            family inet {
+                address 10.3.3.3/32;
+                address 100.100.100.100/32;
+            }
+        }
+    }
+}
+policy-options {
+    policy-statement exp-gre {
+        term ok {
+            from {
+                interface lo0.100;
+                route-filter 10.3.3.3/32 exact;
+            }
+            then accept;
+        }
+        then reject;
+    }
+    policy-statement l3vpn-exp-bgp {
+        term ok {
+            from {
+                interface lo0.100;
+                route-filter 100.100.100.100/32 exact;
+            }
+            then accept;
+        }
+        then reject;
+    }
+}
+routing-instances {
+    l3vpn-gre {
+        instance-type virtual-router;
+        interface ge-0/0/0.100;
+        interface gr-0/0/10.0;
+        interface lo0.100;
+        protocols {
+            bgp {
+                group pe {
+                    type external;
+                    export l3vpn-exp-bgp;
+                    peer-as 100;
+                    neighbor 192.168.100.1;
+                }
+                group gre {
+                    type external;
+                    export exp-gre;
+                    peer-as 100;
+                    neighbor 100.64.1.1;
+                }
+            }
+        }
+    }
+}
+routing-options {
+    autonomous-system 65003;
+}
+</configuration-text>
